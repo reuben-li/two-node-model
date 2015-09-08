@@ -4,28 +4,25 @@ svp <- function (x){    #function to convert saturation vapour pressure units
     return (svp_m)
 }
 
-sub <- function(){
+sub <- function(tav,trv){
 
     # Initial temperatures
     tcl = 34        # T of clothes
     tr = 58         # Tmrt
     rh = 0.6
     tcr = 36.9
-    tsk = 34
+    tsk = 36
     ta = 28
     ttsk = 33.7     # setpoint tsk
     ttcr = 36.8     # setpoint tcr
     ttbm = 36
     pa = 2.25       # mmHg vapour pressure
     tclold = tcl       #initialization
-    v = 2           #m/s
+    v = 0.2           #m/s
 
     # Clothing related
     chclo = 0.57    # pants + t-shirt
     facl = 1.0      # surface enlargement?
-
-
-
 
     # Vascular
     skbf = 6.3
@@ -68,7 +65,12 @@ sub <- function(){
     while (time < 1.0){
         dtim = 1.0 / steps
         time = time + dtim
-        print (time*steps)
+        index = time*steps
+        print(index)
+        
+        #dynamic weather
+        ta = tav[index]
+        tr = trv[index]
 
         #####
         # Radiative and convective
@@ -213,7 +215,8 @@ sub <- function(){
         vtsk <- c(vtsk,tsk)
         vtcr <- c(vtcr,tcr)
         }
-        plot(vtsk)
+        plot(vtsk,type="l",ylim=c(34,38))
+        lines(vtcr,col="red")
         cat('sweat',sweat,'\n')
     }
 
@@ -253,5 +256,7 @@ sub <- function(){
 
   }
 
-  sub()
+  ta = c(rep(30,45),rep(28,45))  
+  tr = c(rep(30,45),rep(50,10),rep(28,35))  
+  sub(ta,tr)
   #sub2()
