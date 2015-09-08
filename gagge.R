@@ -4,7 +4,7 @@ svp <- function (x){    #function to convert saturation vapour pressure units
     return (svp_m)
 }
 
-sub <- function(tav,trv){
+sub <- function(tav,trv,vv){
 
     # Initial temperatures
     tcl = 34        # T of clothes
@@ -71,7 +71,7 @@ sub <- function(tav,trv){
         #dynamic weather
         ta = tav[index]
         tr = trv[index]
-
+        v = vv[index]
         #####
         # Radiative and convective
         ####
@@ -215,7 +215,7 @@ sub <- function(tav,trv){
         vtsk <- c(vtsk,tsk)
         vtcr <- c(vtcr,tcr)
         }
-        plot(vtsk,type="l",ylim=c(34,38))
+        plot(vtsk,type="l",ylim=c(34.5,37.5))
         lines(vtcr,col="red")
         cat('sweat',sweat,'\n')
     }
@@ -256,7 +256,9 @@ sub <- function(tav,trv){
 
   }
 
-  ta = c(rep(30,45),rep(28,45))  
-  tr = c(rep(30,45),rep(50,10),rep(28,35))  
-  sub(ta,tr)
+  tav = c(rep(30,45),rep(28,45))  
+  trv = c(runif(45,30,40),rep(58,10),rep(28,35))  
+  vv  = runif(90,0,2)
+
+  sub(tav,trv,vv)
   #sub2()
