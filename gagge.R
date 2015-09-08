@@ -177,11 +177,11 @@ sub <- function(tav,trv,vv){
 
         cat('ersw:',ersw,'emax:',emax,'\n')
         prsw = ersw / emax
-        sweat = sweat + (ersw*adu/0.7)*(interval/3600) #g/timestep
 
         pdif = (1-prsw)*0.06
         edif = pdif*emax
         esk = ersw + edif
+        sweat = sweat + (esk*adu/0.7)*(interval/3600) #g/timestep
         pwet = esk/emax
 
         #dripping sweat
