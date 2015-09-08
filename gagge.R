@@ -18,12 +18,14 @@ sub <- function(){
     ttbm = 36
     pa = 2.25       # mmHg vapour pressure
     tclold = tcl       #initialization
+    v = 2           #m/s
 
     # Clothing related
     chclo = 0.57    # pants + t-shirt
     facl = 1.0      # surface enlargement?
 
-    chc = 4.0
+
+
 
     # Vascular
     skbf = 6.3
@@ -34,10 +36,13 @@ sub <- function(){
     csw = 170 # g/m2/hr
     cdil = 200 #litres/(m2/h/K)
     cstr = 0.1
+    sweat = 0
 
     # Metabolism and activity
-    act = 58.2
-    rm = 58.2
+    mets = 2.9
+    bmr = 58.2
+    rm = bmr * mets
+    act = rm
     me = 0.2
     wk = 0.2 * rm
 
@@ -53,7 +58,7 @@ sub <- function(){
     # Time
     time = 0.0      # init
     exp_time = 30.0 # mins
-    interval = 1   # seconds
+    interval = 20   # seconds
     steps = exp_time*60/interval
 
     # Variable vectors
@@ -68,6 +73,7 @@ sub <- function(){
         #####
         # Radiative and convective
         ####
+        chc=8.6*v**0.5
         chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
         tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))
         while (abs(tcl-tclold) > 0.01){
@@ -169,6 +175,7 @@ sub <- function(){
 
         cat('ersw:',ersw,'emax:',emax,'\n')
         prsw = ersw / emax
+        sweat = sweat + (ersw*adu/0.7)*(interval/3600) #g/timestep
 
         pdif = (1-prsw)*0.06
         edif = pdif*emax
@@ -207,6 +214,7 @@ sub <- function(){
         vtcr <- c(vtcr,tcr)
         }
         plot(vtsk)
+        cat('sweat',sweat,'\n')
     }
 
   sub2 <- function(){
