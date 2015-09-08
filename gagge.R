@@ -166,7 +166,7 @@ sub <- function(){
         cat('ersw:',ersw,'emax:',emax,'\n') 
         prsw = ersw / emax
         
-        pdif = (1-prsw)*0.6
+        pdif = (1-prsw)*0.06
         edif = pdif*emax
         esk = ersw + edif
         pwet = esk/emax
@@ -174,10 +174,12 @@ sub <- function(){
         #dripping sweat
         eveff = 1
         
-        if (pwet > eveff & emax > 0){
+        if (pwet >= eveff & emax >= 0){
             pwet = eveff
             prsw = (eveff-0.06)/.94
             ersw = prsw / emax
+            pdif = (1-prsw)*0.06
+            edif = pdif*emax
             esk = ersw + edif
         }
         
