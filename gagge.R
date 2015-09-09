@@ -67,7 +67,7 @@ sub <- function(tav,trv,vv){
         time = time + dtim
         index = time*steps
         print(index)
-        
+
         #dynamic weather
         ta = tav[index]
         tr = trv[index]
@@ -218,6 +218,7 @@ sub <- function(tav,trv,vv){
         plot(vtsk,type="l",ylim=c(34.5,37.5))
         lines(vtcr,col="red")
         cat('sweat',sweat,'\n')
+        return(list(tsk=vtsk,tcr=vtcr))
     }
 
   sub2 <- function(){
@@ -256,9 +257,11 @@ sub <- function(tav,trv,vv){
 
   }
 
-  tav = c(rep(30,45),rep(28,45))  
-  trv = c(runif(45,30,40),rep(58,10),rep(28,35))  
+
+  tav = c(rep(30,45),rep(28,45))
+  trv = c(runif(45,30,40),rep(58,10),rep(28,35))
   vv  = runif(90,0,2)
 
-  sub(tav,trv,vv)
-  #sub2()
+  x<-sub(tav,trv,vv)
+  x$tcr
+#sub2()
