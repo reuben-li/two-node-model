@@ -1,7 +1,7 @@
 svp <- function (x){    #function to convert saturation vapour pressure units
     svp = 6.11*10^((7.5*x)/(237.7+x))    #saturation vapour pressure (hpa)
     #svp_m = 0.750061683 * svp             #svp in  mmhg
-    return (svp/10)
+    return (svp/10)  #hPa to kPa
 }
 
 s2nk<-function(N,exp,phase,interval){
@@ -96,9 +96,7 @@ sub <- function(data){
         }
         index=index+1
         print(paste(index,"---------------"))
-        time = time + 20/1800
-        
-        index=
+        time = time + 20/1800                
         
         #dynamic weather
         ta = data$TP[index]
@@ -121,15 +119,14 @@ sub <- function(data){
         
         }
         
-        tclold=tcl
+       
         chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
         tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))
         
         while (abs(tcl-tclold) > 0.01){
             tclold=tcl
             chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
-            tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))
-           
+            tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))           
         }        
         
         # heat flow from clothing to environment
@@ -137,7 +134,7 @@ sub <- function(data){
         conv = facl*chc*(tcl-ta)
         dry = rad+conv   # R + C negative = gain
         #dry = facl*(chc*(tcl-ta)+chr*(tcl-tr))   # R + C negative = gain
-#         cat("R+C:",dry,"\n")
+
         # dry and latent respiratory heat losses
         eres = 0.017251 * act * (5.8662-pa)      # evaporative loss from respiration
         #eres2=0.0023*rm*(44-rh*svp(ta))  #1971 formulation
@@ -151,7 +148,6 @@ sub <- function(data){
            
         # heat flow from core
         hfcr=act-(tcr-tsk)*(5.28+1.163*skbf)-cres-eres-wk
-#         cat("hfcr:",hfcr,'\n')
 
         # thermal capacities
         tccr = 58.2*(1-alpha)*wt 
@@ -284,7 +280,7 @@ sub <- function(data){
         versw <- c(versw,ersw)
 
         }
-        
+        par(xaxs='i',yaxs='i',xpd=F,cex=1)
         old.par <- par(mfrow=c(3,2),mar=c(2,2,2,2))
         plot(vhfsk,type="l",main="hfsk and hfcr",ylim=c(-100,100))
         lines(vhfcr,col="red")
