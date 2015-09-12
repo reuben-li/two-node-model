@@ -89,7 +89,7 @@ sub <- function(data){
     index = 0
     while (time < 1.0){
         if (time >= 0.5) {
-          act = rm
+          act = rm *mets #no mets
         }
         else {
           act = rm * mets
@@ -119,8 +119,8 @@ sub <- function(data){
         
         }
         
-       
         chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
+        
         tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))
         
         while (abs(tcl-tclold) > 0.01){
@@ -138,20 +138,19 @@ sub <- function(data){
         # dry and latent respiratory heat losses
         eres = 0.017251 * act * (5.8662-pa)      # evaporative loss from respiration
         #eres2=0.0023*rm*(44-rh*svp(ta))  #1971 formulation
-#         cat("eres",eres,"\n")
+
         cres=0.0014 * act * (34.0-ta) # *ata*ff  # convective loss from respiration
-#         cat("cres",cres,"\n")
         
         wk = act * me
         # heat flow from skin
         hfsk=(tcr-tsk)*(5.28+1.163*skbf)-dry-esk
-           
+        
         # heat flow from core
         hfcr=act-(tcr-tsk)*(5.28+1.163*skbf)-cres-eres-wk
 
         # thermal capacities
-        tccr = 58.2*(1-alpha)*wt 
-        tcsk = 58.2*alpha*wt 
+        tccr = 58.2*(1-alpha)*wt *20   # 58.2 = 0.97 * 60s!!!!
+        tcsk = 58.2*alpha*wt *20
     
         # temperature change in 1 min
         dtsk = (hfsk*adu)/tcsk 
@@ -212,8 +211,6 @@ sub <- function(data){
           regsw = regswl
         }
         
-       
-        
         ersw = 0.68 * regsw
 #        ersw = 0.7 * regsw * 2^((tsk-ttsk)/3)   #1971
         #shivering
@@ -239,8 +236,7 @@ sub <- function(data){
 
         #dripping sweat
         eveff = 1
-      
-
+        
         if (pwet >= eveff & emax >= 0){
             pwet = eveff
             prsw = (eveff-0.06)/.94
@@ -282,14 +278,14 @@ sub <- function(data){
         }
         par(xaxs='i',yaxs='i',xpd=F,cex=1)
         old.par <- par(mfrow=c(3,2),mar=c(2,2,2,2))
-        plot(vhfsk,type="l",main="hfsk and hfcr",ylim=c(-100,100))
+        plot(vhfsk,type="l",main="hfsk and hfcr (red)",ylim=c(-100,100))
         lines(vhfcr,col="red")
-        plot(vtsk,type="l",ylim=c(30,36), main= "tsk and tcl")
+        plot(vtsk,type="l",ylim=c(30,36), main= "tsk and tcl (red)")
         lines(vtcl,col="red")
         plot(vtcr,type="l",ylim=c(36.5,37.5))
         plot(vr,type="l", main="R")
         plot(vc,type="l", main="C")
-        plot(ve,type="l", main = "E",ylim=c(0,60))
+        plot(ve,type="l", main = "E",ylim=c(0,120))
         lines(vedif,col="blue")
         lines(versw,col="red")
         
@@ -297,15 +293,8 @@ sub <- function(data){
         return(list(tsk=vtsk,tcr=vtcr))
     }
 
-
-
-
-  
-
-  data<-s2nk("K01","N",1,30)
+  data<-s2nk("K01","K",1,30)
   sub(data)
-  #x$tcr
-#sub2()
 
 
 sub2 <- function(){
