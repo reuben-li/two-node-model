@@ -4,6 +4,12 @@ svp <- function (x){    #function to convert saturation vapour pressure units
     return (svp/10)  #hPa to kPa
 }
 
+svp_m <- function (x){    #function to convert saturation vapour pressure units
+  svp = 6.11*10^((7.5*x)/(237.7+x))    #saturation vapour pressure (hpa)
+  svp_m = 0.750061683 * svp             #svp in  mmhg
+  return (svp_m)  #hPa to kPa
+}
+
 s2nk<-function(N,exp,phase,interval){
   #find out which exp and phase
   case=paste(exp,phase,sep="_")
@@ -27,11 +33,11 @@ s2nk<-function(N,exp,phase,interval){
 sub <- function(data){
 
     # Initial temperatures
-    tcl = tclold = 0     # To prevent while loop from bugging out
+#     tcl = tclold = 0     # To prevent while loop from bugging out
     tcr = 36.9
     tsk = 34
     ttsk = 33.7     # setpoint tsk
-    ttcr = 36.8     # setpoint tcr
+    ttcr = 36.9     # setpoint tcr
     ata = 1 # atmospheres?
   
     # Clothing related
@@ -61,7 +67,7 @@ sub <- function(data){
     wt = 70
     adu = 1.8
     alpha = 0.044 + 0.35/ (skbf-0.1386)
-
+    
     esk = 7.3 #init
     bz = 0.1
 
@@ -89,14 +95,16 @@ sub <- function(data){
     index = 0
     while (time < 1.0){
         if (time >= 0.5) {
-          act = rm *mets #no mets
+          act = rm * mets #no mets     
         }
         else {
           act = rm * mets
+          
         }
         index=index+1
         print(paste(index,"---------------"))
-        time = time + 20/1800                
+        dtim = interval/(exp_time*60)
+        time = time + dtim               
         
         #dynamic weather
         ta = data$TP[index]
@@ -111,27 +119,28 @@ sub <- function(data){
         #still air
         chc1 = 5.66*(mets-0.85)^0.39  # based on walking activity in still air
         chc2=8.6*(v)^0.5
+#         chc=max(chc,3.0)
         if (time <= 0.5){
           chc=max(chc2,chc1)
         }
         else{
-          chc=max(chc2,3)
-        
+          chc=max(chc2,3)        
         }
         
-        chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
+#         chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
         
-        tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))
+#         tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))
         
-        while (abs(tcl-tclold) > 0.01){
-            tclold=tcl
-            chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
-            tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))           
-        }        
-        
+#         while (abs(tcl-tclold) > 0.01){
+#             tclold=tcl
+#             chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
+#             tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))           
+#         }        
+#         
         # heat flow from clothing to environment
-        rad = facl*chr*(tcl-tr)
-        conv = facl*chc*(tcl-ta)
+#         rad = facl*chr*(tsk-tr)
+        rad = facl * 0.72 * 0.97 * 5.67*10^-8 * ((tsk+273.15)**4 - (tr+273.15)**4)
+        conv = facl*chc*(tsk-ta)
         dry = rad+conv   # R + C negative = gain
         #dry = facl*(chc*(tcl-ta)+chr*(tcl-tr))   # R + C negative = gain
 
@@ -145,20 +154,22 @@ sub <- function(data){
         # heat flow from skin
         hfsk=(tcr-tsk)*(5.28+1.163*skbf)-dry-esk
         
+        
         # heat flow from core
         hfcr=act-(tcr-tsk)*(5.28+1.163*skbf)-cres-eres-wk
 
         # thermal capacities
-        tccr = 58.2*(1-alpha)*wt *20   # 58.2 = 0.97 * 60s!!!!
-        tcsk = 58.2*alpha*wt *20
+        tccr = (1-alpha)*wt*0.97     # 58.2 = 0.97 * 60s!!!!
+        tcsk = alpha*wt*0.97
     
         # temperature change in 1 min
-        dtsk = (hfsk*adu)/tcsk 
+        dtsk = (hfsk*adu)/tcsk    
+        cat((tcr-tsk)*(5.28+1.163*skbf),'\n')
         dtcr = (hfcr*adu)/tccr 
         dtbm=alpha*dtsk+(1.-alpha)*dtcr
         
-        tsk = tsk+dtsk
-        tcr = tcr+dtcr
+        tsk = tsk+dtsk*dtim
+        tcr = tcr+dtcr*dtim
 
        
         if (tsk>ttsk) {
@@ -225,6 +236,8 @@ sub <- function(data){
         icl = 0.45
         rt = (1/im) * (1/(lr*facl*chc)+1/(lr*chclo*icl))        
         emax = (1/rt)*(svp(tsk)-pa)
+#         fpcl=1./(1.0+0.143*(chc)*clo)
+#         emax = 2.2*chc*svp_m(tsk)-rh*svp_m(ta)*fpcl
         
         prsw = ersw / emax
 
@@ -265,7 +278,7 @@ sub <- function(data){
         vtsk <- c(vtsk,tsk)
         vdtsk <- c(vdtsk,dtsk)
         vtcr <- c(vtcr,tcr)
-        vtcl <- c(vtcl,tcl)
+#         vtcl <- c(vtcl,tcl)
         vr <- c(vr,rad)
         vc <- c(vc,conv)
         ve <- c(ve,esk)
@@ -280,8 +293,8 @@ sub <- function(data){
         old.par <- par(mfrow=c(3,2),mar=c(2,2,2,2))
         plot(vhfsk,type="l",main="hfsk and hfcr (red)",ylim=c(-100,100))
         lines(vhfcr,col="red")
-        plot(vtsk,type="l",ylim=c(30,36), main= "tsk and tcl (red)")
-        lines(vtcl,col="red")
+        plot(vtsk,type="l",main="tsk")# ylim=c(33,35))#ylim=c(30,36), main= "tsk and tcl (red)")
+        #lines(vtcl,col="red")
         plot(vtcr,type="l",ylim=c(36.5,37.5))
         plot(vr,type="l", main="R")
         plot(vc,type="l", main="C")
@@ -293,7 +306,7 @@ sub <- function(data){
         return(list(tsk=vtsk,tcr=vtcr))
     }
 
-  data<-s2nk("K01","K",1,30)
+  data<-s2nk("K01","N",1,30)
   sub(data)
 
 
