@@ -34,27 +34,27 @@ sub <- function(data,phys){
     # Initial temperatures
     tcl = tclold = 0     # To prevent while loop from bugging out
     tcr = 36.9
-    tsk = 34
+    tsk = 34.5
     ttsk = 33.7     # setpoint tsk
     ttcr = 36.9    # setpoint tcr
     ata = 1 # atmospheres?
   
     # Clothing related
     clo = 0.57
-#     clo = 0.1 #takada
     chclo = 1/(0.155*clo)    # pants + t-shirt
-    
     facl = 1.0+0.15*clo     # surface enlargement?
 
     # Vascular
     skbf = 6.3
+    skbfn = 6.3    #forms the equation to calculate new blood flow rate
     skbfl = 90 # L/m2/hr
-
+    multi = 1
+    
     # Sweat
     regswl = 500
     csw = 170 # g/m2/hr
-    cdil = 75 #litres/(m2/h/K)  #200 in 1986
-    cstr = 0.5                  #0.1 in 1986
+    cdil = 75 #litres/(m2/h/K)  #200 in 1986 75 in 1971
+    cstr = 0.1                  #0.1 in 1986  0.5 in 1971
     sweat = 0
 
     
@@ -65,14 +65,25 @@ sub <- function(data,phys){
     alpha = 0.044 + 0.35/ (skbf-0.1386)
     
     # Metabolism and activity
-    mets = 4
+    mets = 2.9
     rm = ((0.064*wt + 2.896)*11.57)/adu # BMR is for person. equations here use sqm^-1 
 #     print (rm)
 #     mets = phys$mets
-#     rm = 58.2
+#     rm = 58.2  
+    #body fat percentage
+#     bmi = wt/ht^2
+#     bfp = 1.2*bmi + 0.23*25 - 10.8 - 5.4 #males
+#     lbm = wt*(1-(bfp/100)) #lean body mass
+    #katch mcardle formula
+#     rm = (370+21.6*lbm)*0.0484/adu
     
-    me = 0.2
-     
+    #mifflin st-jour
+#     rm = (10*wt+6.25*ht*100-5*25+5)*0.0484/adu
+    #harris-benedict
+#     rm = (13.397*wt + 4.799*ht*100 - 5.677*25 + 88.362) * 0.0484/adu
+#     print(rm)
+    
+    me = 0.2  
     esk = 7.3 #init
     bz = 0.1
 
@@ -99,11 +110,23 @@ sub <- function(data,phys){
     
     
     #takada experiment
-#     data = list()
-#     data$TP =  c(rep(29.4,31),rep(20,20),rep(29.4,30),rep(40.9,20),rep(29.4,20))  
-#     data$MRT =  c(rep(29.6,31),rep(20.2,20),rep(29.5,30),rep(40.2,20),rep(29.6,20))
-#     data$WS =  c(rep(0.1,31),rep(0.24,20),rep(0.10,30),rep(0.12,20),rep(0.12,20))
-#     data$RH = c(rep(47.5,31),rep(55.6,20),rep(47.6,30),rep(53.5,20),rep(47.8,20))
+    clo = 0.1 #takada
+    chclo = 1/(0.155*clo)    # pants + t-shirt
+    facl = 1.0+0.15*clo     # surface enlargement?
+    rm = 58.2
+    me = 0
+    mets = 1
+    time = 0.0      # init
+    exp_time = 120.0 # mins
+    hours = exp_time/60
+    interval = 10   # seconds
+    dt = 6
+    steps = exp_time*60/interval
+    data = list()
+    data$TP =  c(rep(29.4,30*dt+1),rep(20,20*dt),rep(29.4,30*dt),rep(40.9,20*dt),rep(29.4,20*dt))  
+    data$MRT =  c(rep(29.6,30*dt+1),rep(20.2,20*dt),rep(29.5,30*dt),rep(40.2,20*dt),rep(29.6,20*dt))
+    data$WS =  c(rep(0.1,30*dt+1),rep(0.24,20*dt),rep(0.10,30*dt),rep(0.12,20*dt),rep(0.12,20*dt))
+    data$RH = c(rep(47.5,30*dt+1),rep(55.6,20*dt),rep(47.6,30*dt),rep(53.5,20*dt),rep(47.8,20*dt))
     
 
     index = 0
@@ -117,11 +140,6 @@ sub <- function(data,phys){
           
         }
         index=index+1
-#         if (index%%20==0){
-#           windex = windex + 1
-#         }
-#         print(paste(windex,"---------------"))
-         
         
         #dynamic weather
         ta = data$TP[index]
@@ -137,16 +155,16 @@ sub <- function(data,phys){
         ti = 1.0
         
         #seppanen model
-        if (v < 0.15){
-          v=4/3.6
-        }
-        
-        chc = 14.8*v^0.69
+#         if (v < 0.15){
+#           v=4/3.6
+#         }
+#         
+#         chc = 14.8*v^0.69
 #         
 #         chc = 4.0*v + 0.35*v * ti - 0.00080*(v*ti)**2 + 3.4 #Ooka
 #         chc = 8.4*v^0.5
 #         chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
-#         chc = 3.1  #takada
+        chc = 3.1  #takada
         chr = 4.65 #takada
 #         tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))
         
@@ -155,7 +173,7 @@ sub <- function(data,phys){
 #             chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
 #             tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))           
 #         }        
-         tcl = tsk
+        tcl = tsk
 
         # heat flow from clothing to environment
         rad = facl*chr*(tcl-tr)
@@ -174,7 +192,6 @@ sub <- function(data,phys){
         # heat flow from skin
         hfsk=(tcr-tsk)*(5.28+1.163*skbf)-dry-esk
         
-        
         # heat flow from core
         hfcr=act-(tcr-tsk)*(5.28+1.163*skbf)-cres-eres-wk
         
@@ -183,6 +200,7 @@ sub <- function(data,phys){
         tcsk = alpha*wt*0.97
     
         # temperature change per hr (C/hr)
+        
         dtsk = (hfsk*adu)/tcsk    
         dtcr = (hfcr*adu)/tccr 
         dtbm=alpha*dtsk+(1.-alpha)*dtcr
@@ -198,8 +216,8 @@ sub <- function(data,phys){
           dtim = 0.1/u
         }
         
-        tsk = tsk+dtsk*dtim*hours*3 # divided by two because 1.0 time is only 30 mins 
-        tcr = tcr+dtcr*dtim*hours*3
+        tsk = tsk+dtsk*dtim*hours*multi # divided by two because 1.0 time is only 30 mins 
+        tcr = tcr+dtcr*dtim*hours*multi
 
 #         print(dtim)
 #         print(index)
@@ -238,14 +256,16 @@ sub <- function(data,phys){
         dilat = cdil*warmc
         stric = cstr*colds
         
-        skbf = (6.3+dilat)/(1+stric)
+        skbf = (skbfn+dilat)/(1+stric)
         # limits
         if (skbf < 0.5) {skbf = 0.5}
         if (skbf > skbfl) {skbf = skbfl}
 
         # skin-core proportion changes with blood flow
-        alpha = 0.0417737+ 0.7451832/(skbf+0.58517)
+#         alpha = 0.0417737+ 0.7451832/(skbf+0.58517)
+        alpha = 0.044 + 0.35/ (skbf-0.1386)
 #         alpha = 0.1
+       
 
 #         cat('warms',warms,'\n')
         #sweating regulation
@@ -311,7 +331,7 @@ sub <- function(data,phys){
         edrip = (regsw*0.68-prsw*emax)/0.68
         if (edrip < 0) {edrip = 0}
         
-        sweat = sweat + ((esk+edrip)*adu/0.68)*(interval/3600) #g/timestep
+        sweat = sweat + ((cres+esk+edrip)*adu/0.68)*(interval/3600) #g/timestep
         
         #vapour pressure at skin
         vpsk = pwet * svp(tsk)+(1-pwet)*pa
@@ -346,7 +366,7 @@ sub <- function(data,phys){
         lines(vedif,col="blue")
         lines(versw,col="red")
         
-        cat('sweat',sweat,'\n')
+        cat(sweat/hours,'\n')#,"; bmr:",rm,"bfp:",bfp,"lbm:",lbm,"\n")
         return(list(tsk=vtsk,tcr=vtcr))
     }
 
@@ -366,36 +386,33 @@ ns2 = list(); ns2$ht = 1.7; ns2$wt = 71.175; ns2$mets1 = 4.52; ns2$mets2 = 4.08
 ns3 = list(); ns3$ht = 1.8; ns3$wt = 71.51; ns3$mets1 = 4.36; ns3$mets2 = 4.28
 ns4 = list(); ns4$ht = 1.69; ns4$wt = 59.98; ns4$mets1 = 3.68; ns4$mets2 = 3.68
 
-phys = list()
-subject = ns1 #ks,hs or ns
-phys$ht = subject$ht
-phys$wt = subject$wt
-phys$mets = subject$mets2
-data<-s2nk("K01","N",2,30)
-sub(data,phys)
 
-phys = list()
-subject = ns2
-phys$ht = subject$ht
-phys$wt = subject$wt
-phys$mets = subject$mets2
-data<-s2nk("K01","N",2,30)
-sub(data,phys)
+wrap <- function(exp,candidate){
+#   cat(exp,"1\n")
+  for (n in 1:4){
+    phys = list()
+    subject = get(paste(candidate,n,sep="")) #ks,hs or ns
+    phys$ht = subject$ht
+    phys$wt = subject$wt
+    phys$mets = subject$mets1
+    data<-s2nk("K01",exp,1,30)
+    sub(data,phys)
+  }
+#   cat("----------------\n")
+#   cat(exp,"2\n")
+  for (n in 1:4){
+    phys = list()
+    subject = get(paste(candidate,n,sep="")) #ks,hs or ns
+    phys$ht = subject$ht
+    phys$wt = subject$wt
+    phys$mets = subject$mets2
+    data<-s2nk("K01",exp,2,30)
+    sub(data,phys)
+  }
+#   cat("----------------\n")
+}
 
-phys = list()
-subject = ns3
-phys$ht = subject$ht
-phys$wt = subject$wt
-phys$mets = subject$mets2
-data<-s2nk("K01","N",2,30)
-sub(data,phys)
-
-phys = list()
-subject = ns4
-phys$ht = subject$ht
-phys$wt = subject$wt
-phys$mets = subject$mets2
-data<-s2nk("K01","N",2,30)
-sub(data,phys)
-
+wrap("H","hs")
+wrap("K","ks")
+wrap("N","ns")
 
