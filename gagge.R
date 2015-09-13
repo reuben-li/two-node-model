@@ -19,8 +19,8 @@ s2nk<-function(N,exp,phase,interval){
                H_2 = as.POSIXlt("2014-09-02 16:31:00"),        
                K_1 = as.POSIXlt("2014-09-04 14:35:00"),
                K_2 = as.POSIXlt("2014-09-04 16:33:00"),           
-               N_1 = as.POSIXlt("2014-09-16 14:40:20"),
-               N_2 = as.POSIXlt("2014-09-16 16:25:00"),
+               N_1 = as.POSIXlt("2014-09-16 14:42:20"),
+               N_2 = as.POSIXlt("2014-09-16 16:26:00"),
                
   )
   return(
@@ -30,14 +30,14 @@ s2nk<-function(N,exp,phase,interval){
   )
 }
 
-sub <- function(data){
+sub <- function(data,phys){
 
     # Initial temperatures
-#     tcl = tclold = 0     # To prevent while loop from bugging out
+    tcl = tclold = 0     # To prevent while loop from bugging out
     tcr = 36.9
-    tsk = 34
+    tsk = 34.5
     ttsk = 33.7     # setpoint tsk
-    ttcr = 36.9     # setpoint tcr
+    ttcr = 36.9    # setpoint tcr
     ata = 1 # atmospheres?
   
     # Clothing related
@@ -57,24 +57,30 @@ sub <- function(data){
     cstr = 0.5                  #0.1 in 1986
     sweat = 0
 
-    # Metabolism and activity
-    mets = 2.9
-    rm = 58.2
-    me = 0.2
     
     # Body metrics
-    ht = 1.81
-    wt = 70
-    adu = 1.8
+    ht = phys$ht
+    wt = phys$wt
+    adu = 0.007184*((ht*100)^0.725)*wt^0.425
     alpha = 0.044 + 0.35/ (skbf-0.1386)
     
+    # Metabolism and activity
+    mets = 1
+    rm = ((0.064*wt + 2.896)*11.57)/adu #all equations use /sqm 
+#     print (rm)
+#     mets = phys$mets
+#     rm = 58.2
+    
+    me = 0.2
+     
     esk = 7.3 #init
     bz = 0.1
 
     # Time
     time = 0.0      # init
-    exp_time = 30.0 # mins
-    interval = 20   # seconds
+    exp_time = 120.0 # mins
+    hours = exp_time/60
+    interval = 60   # seconds
     steps = exp_time*60/interval
 
     # Variable vectors
@@ -91,8 +97,16 @@ sub <- function(data){
     vhfsk = c()
     vhfcr = c()
     
+    data = list()
+    
+    data$TP =  c(rep(29.4,31),rep(20,20),rep(29.4,30),rep(40.9,20),rep(29.4,20))  
+    data$MRT =  c(rep(29.6,31),rep(20.2,20),rep(29.5,30),rep(40.2,20),rep(29.6,20))
+    data$WS =  c(rep(0.1,31),rep(0.24,20),rep(0.10,30),rep(0.12,20),rep(0.12,20))
+    data$RH = c(rep(47.5,31),rep(55.6,20),rep(47.6,30),rep(53.5,20),rep(47.8,20))
+    
 
     index = 0
+    windex = 1
     while (time < 1.0){
         if (time >= 0.5) {
           act = rm * mets #no mets     
@@ -102,9 +116,11 @@ sub <- function(data){
           
         }
         index=index+1
-        print(paste(index,"---------------"))
-        dtim = interval/(exp_time*60)
-        time = time + dtim               
+#         if (index%%20==0){
+#           windex = windex + 1
+#         }
+#         print(paste(windex,"---------------"))
+         
         
         #dynamic weather
         ta = data$TP[index]
@@ -117,37 +133,37 @@ sub <- function(data){
         ####
         
         #still air
-        chc1 = 5.66*(mets-0.85)^0.39  # based on walking activity in still air
-        chc2=8.6*(v)^0.5
-#         chc=max(chc,3.0)
-        if (time <= 0.5){
-          chc=max(chc2,chc1)
-        }
-        else{
-          chc=max(chc2,3)        
-        }
+        ti = 1.0
         
-#         chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
+        #seppanen model
+#         if (v < 0.15){
+#           v=4/3.6
+#         }
         
-#         tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))
-        
-#         while (abs(tcl-tclold) > 0.01){
-#             tclold=tcl
-#             chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
-#             tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))           
-#         }        
+#           chc = 14.8*v^0.69
 #         
+#         chc = 4.0*v + 0.35*v * ti - 0.00080*(v*ti)**2 + 3.4 #Ooka
+        chc = 8.4*v^0.5
+        chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
+        tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))
+        
+        while (abs(tcl-tclold) > 0.01){
+            tclold=tcl
+            chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
+            tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))           
+        }        
+        
         # heat flow from clothing to environment
-#         rad = facl*chr*(tsk-tr)
-        rad = facl * 0.72 * 0.97 * 5.67*10^-8 * ((tsk+273.15)**4 - (tr+273.15)**4)
+        rad = facl*chr*(tcl-tr)
+#         rad = facl * 0.72 * 0.97 * 5.67*10^-8 * ((tsk+273.15)**4 - (tr+273.15)**4)
         conv = facl*chc*(tsk-ta)
         dry = rad+conv   # R + C negative = gain
-        #dry = facl*(chc*(tcl-ta)+chr*(tcl-tr))   # R + C negative = gain
+#         dry = facl*(chc*(tsk-ta)+chr*(tsk-tr))   # R + C negative = gain
 
         # dry and latent respiratory heat losses
         eres = 0.017251 * act * (5.8662-pa)      # evaporative loss from respiration
-        #eres2=0.0023*rm*(44-rh*svp(ta))  #1971 formulation
-
+#         eres=0.0023*rm*(44-rh*svp(ta))  #1971 formulation
+        
         cres=0.0014 * act * (34.0-ta) # *ata*ff  # convective loss from respiration
         
         wk = act * me
@@ -157,20 +173,32 @@ sub <- function(data){
         
         # heat flow from core
         hfcr=act-(tcr-tsk)*(5.28+1.163*skbf)-cres-eres-wk
-
-        # thermal capacities
+        # thermal capacities per second!
         tccr = (1-alpha)*wt*0.97     # 58.2 = 0.97 * 60s!!!!
         tcsk = alpha*wt*0.97
     
-        # temperature change in 1 min
+        # temperature change per interval
         dtsk = (hfsk*adu)/tcsk    
-        cat((tcr-tsk)*(5.28+1.163*skbf),'\n')
+#         cat((tcr-tsk)*(5.28+1.163*skbf),'\n')
         dtcr = (hfcr*adu)/tccr 
         dtbm=alpha*dtsk+(1.-alpha)*dtcr
         
-        tsk = tsk+dtsk*dtim
-        tcr = tcr+dtcr*dtim
+        dtim = interval/(exp_time*60)
+        time = time + dtim
+        u = abs(dtsk)
+        if(u*dtim > 0.1) {
+          dtim = 0.1/u
+        }
+        u = abs(dtcr)
+        if(u*dtim > 0.1) {
+          dtim = 0.1/u
+        }
+        
+        tsk = tsk+dtsk*dtim*6 # divided by two because 1.0 time is only 30 mins 
+        tcr = tcr+dtcr*dtim*6
 
+        print(dtim)
+        print(index)
        
         if (tsk>ttsk) {
           warms = tsk - ttsk
@@ -218,12 +246,18 @@ sub <- function(data){
 #         cat('warms',warms,'\n')
         #sweating regulation
         regsw = csw*warmb*exp(warms/10.7)
+#         regsw = regsw=250.0*warmc+100.0*warmc*warms 
         if (regsw > regswl) {
           regsw = regswl
         }
         
-        ersw = 0.68 * regsw
-#        ersw = 0.7 * regsw * 2^((tsk-ttsk)/3)   #1971
+#         ersw = 0.68 * regsw
+        ersw = 0.675 * regsw * 2^((tsk-ttsk)/3)   #1971
+#         swf = 1.0 #male sweat factor
+#         sw = max(8.47 * 10**-5 * ((alpha* tsk + (1-alpha) * tcr) - ttcr),0)*swf
+#         sw_h = sw * 3600
+#         ersw = sw_h * 675
+        
         #shivering
         actold = act
         act = act + 19.4 * colds*coldc
@@ -236,15 +270,18 @@ sub <- function(data){
         icl = 0.45
         rt = (1/im) * (1/(lr*facl*chc)+1/(lr*chclo*icl))        
         emax = (1/rt)*(svp(tsk)-pa)
-#         fpcl=1./(1.0+0.143*(chc)*clo)
-#         emax = 2.2*chc*svp_m(tsk)-rh*svp_m(ta)*fpcl
+        fpcl=1./(1.0+0.143*(chc)*clo)
+        
+        emax = 2.2*chc*svp_m(tsk)-rh*svp_m(ta)*fpcl
         
         prsw = ersw / emax
 
         pdif = (1-prsw)*0.06
-        edif = pdif*emax
+#         edif = pdif*emax
+        vp_m = svp_m(ta)*rh
+        edif=-1.694 * 10**-7  * 2430000 * (vp_m - svp_m(tsk)) 
         esk = ersw + edif
-        sweat = sweat + (esk*adu/0.7)*(interval/3600) #g/timestep
+        
         pwet = esk/emax
 
         #dripping sweat
@@ -269,7 +306,9 @@ sub <- function(data){
         }
         edrip = (regsw*0.68-prsw*emax)/0.68
         if (edrip < 0) {edrip = 0}
-
+        
+        sweat = sweat + (esk*adu/0.7)*(interval/3600) #g/timestep
+        
         #vapour pressure at skin
         vpsk = pwet * svp(tsk)+(1-pwet)*pa
         # rh at skin
@@ -278,7 +317,7 @@ sub <- function(data){
         vtsk <- c(vtsk,tsk)
         vdtsk <- c(vdtsk,dtsk)
         vtcr <- c(vtcr,tcr)
-#         vtcl <- c(vtcl,tcl)
+        vtcl <- c(vtcl,tcl)
         vr <- c(vr,rad)
         vc <- c(vc,conv)
         ve <- c(ve,esk)
@@ -293,9 +332,10 @@ sub <- function(data){
         old.par <- par(mfrow=c(3,2),mar=c(2,2,2,2))
         plot(vhfsk,type="l",main="hfsk and hfcr (red)",ylim=c(-100,100))
         lines(vhfcr,col="red")
-        plot(vtsk,type="l",main="tsk")# ylim=c(33,35))#ylim=c(30,36), main= "tsk and tcl (red)")
-        #lines(vtcl,col="red")
-        plot(vtcr,type="l",ylim=c(36.5,37.5))
+        plot(vtsk,type="l",main="tsk", ylim=c(29,38))#ylim=c(30,36), main= "tsk and tcl (red)")
+        lines(vtcr,col="red")
+        lines(vtcl,col="green")
+        plot(vtcr,type="l")#,ylim=c(36.5,37.5))
         plot(vr,type="l", main="R")
         plot(vc,type="l", main="C")
         plot(ve,type="l", main = "E",ylim=c(0,120))
@@ -306,8 +346,53 @@ sub <- function(data){
         return(list(tsk=vtsk,tcr=vtcr))
     }
 
-  data<-s2nk("K01","N",1,30)
-  sub(data)
+#subjects data
+hs1 = list(); hs1$ht = 1.77; hs1$wt = 70.65; hs1$mets1 = 5.56; hs1$mets2 = 5.48
+hs2 = list(); hs2$ht = 1.78; hs2$wt = 67.765; hs2$mets1 = 3.64; hs2$mets2 = 3.56
+hs3 = list(); hs3$ht = 1.74; hs3$wt = 70.395; hs3$mets1 = 4.8; hs3$mets2 = 4.84
+hs4 = list(); hs4$ht = 1.68; hs4$wt = 57.54; hs4$mets1 = 5.8; hs4$mets2 = 5.68
+
+ks1 = list(); ks1$ht = 1.8; ks1$wt = 86.515; ks1$mets1 = 3.76; ks1$mets2 = 3.88
+ks2 = list(); ks2$ht = 1.74; ks2$wt = 72.1; ks2$mets1 = 4; ks2$mets2 = 3.8
+ks3 = list(); ks3$ht = 1.69; ks3$wt = 53.755; ks3$mets1 = 4.84; ks3$mets2 = 4.64
+ks4 = list(); ks4$ht = 1.54; ks4$wt = 44.165; ks4$mets1 = 4.88; ks4$mets2 = 4.72
+
+ns1 = list(); ns1$ht = 1.69; ns1$wt = 52.705; ns1$mets1 = 5.12; ns1$mets2 = 5.4
+ns2 = list(); ns2$ht = 1.7; ns2$wt = 71.175; ns2$mets1 = 4.52; ns2$mets2 = 4.08
+ns3 = list(); ns3$ht = 1.8; ns3$wt = 71.51; ns3$mets1 = 4.36; ns3$mets2 = 4.28
+ns4 = list(); ns4$ht = 1.69; ns4$wt = 59.98; ns4$mets1 = 3.68; ns4$mets2 = 3.68
+
+phys = list()
+subject = hs1
+phys$ht = subject$ht
+phys$wt = subject$wt
+phys$mets = subject$mets2
+data<-s2nk("K01","H",1,30)
+sub(data,phys)
+
+phys = list()
+subject = hs2
+phys$ht = subject$ht
+phys$wt = subject$wt
+phys$mets = subject$mets2
+data<-s2nk("K01","H",1,30)
+sub(data,phys)
+
+phys = list()
+subject = hs3
+phys$ht = subject$ht
+phys$wt = subject$wt
+phys$mets = subject$mets2
+data<-s2nk("K01","H",1,30)
+sub(data,phys)
+
+phys = list()
+subject = hs4
+phys$ht = subject$ht
+phys$wt = subject$wt
+phys$mets = subject$mets2
+data<-s2nk("K01","H",1,30)
+sub(data,phys)
 
 
 sub2 <- function(){
