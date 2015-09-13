@@ -1,6 +1,5 @@
 svp <- function (x){    #function to convert saturation vapour pressure units
     svp = 6.11*10^((7.5*x)/(237.7+x))    #saturation vapour pressure (hpa)
-    #svp_m = 0.750061683 * svp             #svp in  mmhg
     return (svp/10)  #hPa to kPa
 }
 
@@ -66,11 +65,11 @@ sub <- function(data,phys){
     alpha = 0.044 + 0.35/ (skbf-0.1386)
     
     # Metabolism and activity
-    mets = 2.9
-#     rm = ((0.064*wt + 2.896)*11.57)/adu #all equations use /sqm 
+    mets = 4
+    rm = ((0.064*wt + 2.896)*11.57)/adu # BMR is for person. equations here use sqm^-1 
 #     print (rm)
 #     mets = phys$mets
-    rm = 58.2
+#     rm = 58.2
     
     me = 0.2
      
@@ -258,10 +257,10 @@ sub <- function(data,phys){
         
         ersw = 0.68 * regsw
 #         ersw = 0.675 * regsw * 2^((tsk-ttsk)/3)   #1971
-        swf = 1.0 #male sweat factor
-        sw = max(8.47 * 10**-5 * ((alpha* tsk + (1-alpha) * tcr) - ttcr),0)*swf
-        sw_h = sw * 3600
-        ersw = sw_h * 675
+#         swf = 1.0 #male sweat factor
+#         sw = max(8.47 * 10**-5 * ((alpha* tsk + (1-alpha) * tcr) - ttcr),0)*swf
+#         sw_h = sw * 3600
+#         ersw = sw_h * 675
         
         #shivering
         actold = act
@@ -286,7 +285,7 @@ sub <- function(data,phys){
         vp_m = svp_m(ta)*rh
         edif=-1.694 * 10**-7  * 2430000 * (vp_m - svp_m(tsk)) 
         esk = ersw + edif
-        
+#         cat(ersw/0.7,regsw,"\n")
         pwet = esk/emax
 
         #dripping sweat
@@ -312,7 +311,7 @@ sub <- function(data,phys){
         edrip = (regsw*0.68-prsw*emax)/0.68
         if (edrip < 0) {edrip = 0}
         
-        sweat = sweat + (esk*adu/0.7)*(interval/3600) #g/timestep
+        sweat = sweat + ((esk+edrip)*adu/0.68)*(interval/3600) #g/timestep
         
         #vapour pressure at skin
         vpsk = pwet * svp(tsk)+(1-pwet)*pa
@@ -368,35 +367,35 @@ ns3 = list(); ns3$ht = 1.8; ns3$wt = 71.51; ns3$mets1 = 4.36; ns3$mets2 = 4.28
 ns4 = list(); ns4$ht = 1.69; ns4$wt = 59.98; ns4$mets1 = 3.68; ns4$mets2 = 3.68
 
 phys = list()
-subject = hs1
+subject = ns1 #ks,hs or ns
 phys$ht = subject$ht
 phys$wt = subject$wt
 phys$mets = subject$mets2
-data<-s2nk("K01","H",1,30)
+data<-s2nk("K01","N",2,30)
 sub(data,phys)
 
 phys = list()
-subject = hs2
+subject = ns2
 phys$ht = subject$ht
 phys$wt = subject$wt
 phys$mets = subject$mets2
-data<-s2nk("K01","H",1,30)
+data<-s2nk("K01","N",2,30)
 sub(data,phys)
 
 phys = list()
-subject = hs3
+subject = ns3
 phys$ht = subject$ht
 phys$wt = subject$wt
 phys$mets = subject$mets2
-data<-s2nk("K01","H",1,30)
+data<-s2nk("K01","N",2,30)
 sub(data,phys)
 
 phys = list()
-subject = hs4
+subject = ns4
 phys$ht = subject$ht
 phys$wt = subject$wt
 phys$mets = subject$mets2
-data<-s2nk("K01","H",1,30)
+data<-s2nk("K01","N",2,30)
 sub(data,phys)
 
 
