@@ -35,13 +35,14 @@ sub <- function(data,phys){
     # Initial temperatures
     tcl = tclold = 0     # To prevent while loop from bugging out
     tcr = 36.9
-    tsk = 34.5
+    tsk = 34
     ttsk = 33.7     # setpoint tsk
     ttcr = 36.9    # setpoint tcr
     ata = 1 # atmospheres?
   
     # Clothing related
     clo = 0.57
+#     clo = 0.1 #takada
     chclo = 1/(0.155*clo)    # pants + t-shirt
     
     facl = 1.0+0.15*clo     # surface enlargement?
@@ -65,11 +66,11 @@ sub <- function(data,phys){
     alpha = 0.044 + 0.35/ (skbf-0.1386)
     
     # Metabolism and activity
-    mets = 1
-    rm = ((0.064*wt + 2.896)*11.57)/adu #all equations use /sqm 
+    mets = 2.9
+#     rm = ((0.064*wt + 2.896)*11.57)/adu #all equations use /sqm 
 #     print (rm)
 #     mets = phys$mets
-#     rm = 58.2
+    rm = 58.2
     
     me = 0.2
      
@@ -78,9 +79,9 @@ sub <- function(data,phys){
 
     # Time
     time = 0.0      # init
-    exp_time = 120.0 # mins
+    exp_time = 30.0 # mins
     hours = exp_time/60
-    interval = 60   # seconds
+    interval = 20   # seconds
     steps = exp_time*60/interval
 
     # Variable vectors
@@ -97,12 +98,13 @@ sub <- function(data,phys){
     vhfsk = c()
     vhfcr = c()
     
-    data = list()
     
-    data$TP =  c(rep(29.4,31),rep(20,20),rep(29.4,30),rep(40.9,20),rep(29.4,20))  
-    data$MRT =  c(rep(29.6,31),rep(20.2,20),rep(29.5,30),rep(40.2,20),rep(29.6,20))
-    data$WS =  c(rep(0.1,31),rep(0.24,20),rep(0.10,30),rep(0.12,20),rep(0.12,20))
-    data$RH = c(rep(47.5,31),rep(55.6,20),rep(47.6,30),rep(53.5,20),rep(47.8,20))
+    #takada experiment
+#     data = list()
+#     data$TP =  c(rep(29.4,31),rep(20,20),rep(29.4,30),rep(40.9,20),rep(29.4,20))  
+#     data$MRT =  c(rep(29.6,31),rep(20.2,20),rep(29.5,30),rep(40.2,20),rep(29.6,20))
+#     data$WS =  c(rep(0.1,31),rep(0.24,20),rep(0.10,30),rep(0.12,20),rep(0.12,20))
+#     data$RH = c(rep(47.5,31),rep(55.6,20),rep(47.6,30),rep(53.5,20),rep(47.8,20))
     
 
     index = 0
@@ -136,27 +138,30 @@ sub <- function(data,phys){
         ti = 1.0
         
         #seppanen model
-#         if (v < 0.15){
-#           v=4/3.6
-#         }
+        if (v < 0.15){
+          v=4/3.6
+        }
         
-#           chc = 14.8*v^0.69
+        chc = 14.8*v^0.69
 #         
 #         chc = 4.0*v + 0.35*v * ti - 0.00080*(v*ti)**2 + 3.4 #Ooka
-        chc = 8.4*v^0.5
-        chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
-        tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))
+#         chc = 8.4*v^0.5
+#         chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
+#         chc = 3.1  #takada
+        chr = 4.65 #takada
+#         tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))
         
-        while (abs(tcl-tclold) > 0.01){
-            tclold=tcl
-            chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
-            tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))           
-        }        
-        
+#         while (abs(tcl-tclold) > 0.01){
+#             tclold=tcl
+#             chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
+#             tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))           
+#         }        
+         tcl = tsk
+
         # heat flow from clothing to environment
         rad = facl*chr*(tcl-tr)
 #         rad = facl * 0.72 * 0.97 * 5.67*10^-8 * ((tsk+273.15)**4 - (tr+273.15)**4)
-        conv = facl*chc*(tsk-ta)
+        conv = facl*chc*(tcl-ta)
         dry = rad+conv   # R + C negative = gain
 #         dry = facl*(chc*(tsk-ta)+chr*(tsk-tr))   # R + C negative = gain
 
@@ -173,17 +178,17 @@ sub <- function(data,phys){
         
         # heat flow from core
         hfcr=act-(tcr-tsk)*(5.28+1.163*skbf)-cres-eres-wk
-        # thermal capacities per second!
+        
+        # thermal capacities W.HR/C!
         tccr = (1-alpha)*wt*0.97     # 58.2 = 0.97 * 60s!!!!
         tcsk = alpha*wt*0.97
     
-        # temperature change per interval
+        # temperature change per hr (C/hr)
         dtsk = (hfsk*adu)/tcsk    
-#         cat((tcr-tsk)*(5.28+1.163*skbf),'\n')
         dtcr = (hfcr*adu)/tccr 
         dtbm=alpha*dtsk+(1.-alpha)*dtcr
         
-        dtim = interval/(exp_time*60)
+        dtim = interval/(exp_time*60) # 1 minute / 120 mins
         time = time + dtim
         u = abs(dtsk)
         if(u*dtim > 0.1) {
@@ -194,11 +199,11 @@ sub <- function(data,phys){
           dtim = 0.1/u
         }
         
-        tsk = tsk+dtsk*dtim*6 # divided by two because 1.0 time is only 30 mins 
-        tcr = tcr+dtcr*dtim*6
+        tsk = tsk+dtsk*dtim*hours*3 # divided by two because 1.0 time is only 30 mins 
+        tcr = tcr+dtcr*dtim*hours*3
 
-        print(dtim)
-        print(index)
+#         print(dtim)
+#         print(index)
        
         if (tsk>ttsk) {
           warms = tsk - ttsk
@@ -241,7 +246,7 @@ sub <- function(data,phys){
 
         # skin-core proportion changes with blood flow
         alpha = 0.0417737+ 0.7451832/(skbf+0.58517)
-        #alpha = 0.1
+#         alpha = 0.1
 
 #         cat('warms',warms,'\n')
         #sweating regulation
@@ -251,12 +256,12 @@ sub <- function(data,phys){
           regsw = regswl
         }
         
-#         ersw = 0.68 * regsw
-        ersw = 0.675 * regsw * 2^((tsk-ttsk)/3)   #1971
-#         swf = 1.0 #male sweat factor
-#         sw = max(8.47 * 10**-5 * ((alpha* tsk + (1-alpha) * tcr) - ttcr),0)*swf
-#         sw_h = sw * 3600
-#         ersw = sw_h * 675
+        ersw = 0.68 * regsw
+#         ersw = 0.675 * regsw * 2^((tsk-ttsk)/3)   #1971
+        swf = 1.0 #male sweat factor
+        sw = max(8.47 * 10**-5 * ((alpha* tsk + (1-alpha) * tcr) - ttcr),0)*swf
+        sw_h = sw * 3600
+        ersw = sw_h * 675
         
         #shivering
         actold = act
@@ -317,7 +322,7 @@ sub <- function(data,phys){
         vtsk <- c(vtsk,tsk)
         vdtsk <- c(vdtsk,dtsk)
         vtcr <- c(vtcr,tcr)
-        vtcl <- c(vtcl,tcl)
+#         vtcl <- c(vtcl,tcl)
         vr <- c(vr,rad)
         vc <- c(vc,conv)
         ve <- c(ve,esk)
@@ -334,7 +339,7 @@ sub <- function(data,phys){
         lines(vhfcr,col="red")
         plot(vtsk,type="l",main="tsk", ylim=c(29,38))#ylim=c(30,36), main= "tsk and tcl (red)")
         lines(vtcr,col="red")
-        lines(vtcl,col="green")
+        lines(vtcl,col="blue")
         plot(vtcr,type="l")#,ylim=c(36.5,37.5))
         plot(vr,type="l", main="R")
         plot(vc,type="l", main="C")
@@ -395,38 +400,3 @@ data<-s2nk("K01","H",1,30)
 sub(data,phys)
 
 
-sub2 <- function(){
-  
-  ctc = chc + chr
-  to = ta + erf / ctc
-  cloe = clo - (facl - 1)/(0.155 * facl * ctc)
-  fcle = 1/(1 + 0.155 * ctc * cloe)
-  fpcl = 1/(1 + (0.155/icl) * chc * cloe )
-  
-  hsk = ctc * fcle * (tsk - to) + pwet * lr * chc * fpcl * (svp(tsk) - pa)
-  
-  et = tsk - hsk / (ctc * fcle)
-  
-  # approximate ET*
-  while (err >= 0) {
-    et = et + 0.1
-    err = hsk - ctc * fcle * (tsk - et) - pwet * lr * chc * fpcl * (svp(tsk) - svp(et)/2)
-  }
-  
-  # SET*
-  chrs = chr
-  chcs = 5.66 * (act/58.2-0.85)^0.39
-  if (chcs < 3) {
-    chcs = 3
-  }
-  
-  rn = rm -wk
-  clos = 1.3264/(rn/58.15+0.7383)-0.0953
-  kclos = 0.25
-  facls = 1+kclos + clos
-  ctcs = chrs + chcs
-  cloes = clos - (facls -1)/(0.155*facls*ctcs)
-  fcles = 1/(1+0.155*ctcs*cloes)
-  fpcls = 1/(1+(0.155/0.45)*chcs*cloes)
-  
-}
