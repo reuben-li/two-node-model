@@ -29,18 +29,42 @@ s2nk<-function(N,exp,phase,interval){
   )
 }
 
-sub <- function(data,phys){
+s2n<-function(N,exp,phase,interval){
+  #find out which exp and phase
+  case=paste(exp,phase,sep="_")
+  shift=0
+  start=switch(case,
+               H_1 = as.POSIXlt("2014-09-02 14:35:00"),
+               H_2 = as.POSIXlt("2014-09-02 16:31:00"),        
+               K_1 = as.POSIXlt("2014-09-04 14:35:00"),
+               K_2 = as.POSIXlt("2014-09-04 16:33:00"),           
+               N_1 = as.POSIXlt("2014-09-16 14:38:40"),
+               N_2 = as.POSIXlt("2014-09-16 16:25:00"),
+               
+  )
+  return(
+    subset(
+      get(paste(N,"_",exp,sep=""))
+      ,TIME > start+shift & TIME < start + interval*60+shift)
+  )
+}
+
+sub <- function(data,phys,exp,n,phase){
 
     # Initial temperatures
     tcl = tclold = 0     # To prevent while loop from bugging out
     tcr = 36.9
-    tsk = 34.5
+    tcr = phys$ttcr # use base oral temp as start temp # higher figure
+#     tcr=s2n(paste("N0",n,sep=""),exp,phase,30)$Ch.1[1]
+    tsk = 34
+    tsk=s2n(paste("N0",n+4,sep=""),exp,phase,30)$mean[1]
+#     print(tsk)
     ttsk = 33.7     # setpoint tsk
-    ttcr = 36.9    # setpoint tcr
+    ttcr = 36.5    # setpoint tcr
     ata = 1 # atmospheres?
   
     # Clothing related
-    clo = 0.57
+    clo = 0.5
     chclo = 1/(0.155*clo)    # pants + t-shirt
     facl = 1.0+0.15*clo     # surface enlargement?
 
@@ -54,7 +78,7 @@ sub <- function(data,phys){
     regswl = 500
     csw = 170 # g/m2/hr
     cdil = 75 #litres/(m2/h/K)  #200 in 1986 75 in 1971
-    cstr = 0.1                  #0.1 in 1986  0.5 in 1971
+    cstr = 0.1                #0.1 in 1986  0.5 in 1971
     sweat = 0
 
     
@@ -65,16 +89,18 @@ sub <- function(data,phys){
     alpha = 0.044 + 0.35/ (skbf-0.1386)
     
     # Metabolism and activity
-    mets = 2.9
+    mets = 4.5
     rm = ((0.064*wt + 2.896)*11.57)/adu # BMR is for person. equations here use sqm^-1 
-#     print (rm)
+#     rm = (63*wt+2896)*0.01157/adu     # kJ to watt schofield
+#     rm = (15.057*wt+692.2)*0.04843/adu  # kcal to watt schofield
+    #     print (rm)
 #     mets = phys$mets
 #     rm = 58.2  
-    #body fat percentage
+    # body fat percentage
 #     bmi = wt/ht^2
 #     bfp = 1.2*bmi + 0.23*25 - 10.8 - 5.4 #males
 #     lbm = wt*(1-(bfp/100)) #lean body mass
-    #katch mcardle formula
+# #     katch mcardle formula
 #     rm = (370+21.6*lbm)*0.0484/adu
     
     #mifflin st-jour
@@ -83,7 +109,9 @@ sub <- function(data,phys){
 #     rm = (13.397*wt + 4.799*ht*100 - 5.677*25 + 88.362) * 0.0484/adu
 #     print(rm)
     
-    me = 0.2  
+    me = 0.1
+    
+#    http://deepblue.lib.umich.edu/handle/2027.42/24523
     esk = 7.3 #init
     bz = 0.1
 
@@ -110,62 +138,70 @@ sub <- function(data,phys){
     
     
     #takada experiment
-    clo = 0.1 #takada
-    chclo = 1/(0.155*clo)    # pants + t-shirt
-    facl = 1.0+0.15*clo     # surface enlargement?
-    rm = 58.2
-    me = 0
-    mets = 1
-    time = 0.0      # init
-    exp_time = 120.0 # mins
-    hours = exp_time/60
-    interval = 10   # seconds
-    dt = 6
-    steps = exp_time*60/interval
-    data = list()
-    data$TP =  c(rep(29.4,30*dt+1),rep(20,20*dt),rep(29.4,30*dt),rep(40.9,20*dt),rep(29.4,20*dt))  
-    data$MRT =  c(rep(29.6,30*dt+1),rep(20.2,20*dt),rep(29.5,30*dt),rep(40.2,20*dt),rep(29.6,20*dt))
-    data$WS =  c(rep(0.1,30*dt+1),rep(0.24,20*dt),rep(0.10,30*dt),rep(0.12,20*dt),rep(0.12,20*dt))
-    data$RH = c(rep(47.5,30*dt+1),rep(55.6,20*dt),rep(47.6,30*dt),rep(53.5,20*dt),rep(47.8,20*dt))
+#     clo = 0.1 #takada
+#     chclo = 1/(0.155*clo)    # pants + t-shirt
+#     facl = 1.0+0.15*clo     # surface enlargement?
+#     rm = 58.2
+#     me = 0
+#     mets = 1
+#     time = 0.0      # init
+#     exp_time = 120.0 # mins
+#     hours = exp_time/60
+#     interval = 10   # seconds
+#     dt = 6
+#     steps = exp_time*60/interval
+#     data = list()
+#     data$TP =  c(rep(29.4,30*dt+1),rep(20,20*dt),rep(29.4,30*dt),rep(40.9,20*dt),rep(29.4,20*dt))  
+#     data$MRT =  c(rep(29.6,30*dt+1),rep(20.2,20*dt),rep(29.5,30*dt),rep(40.2,20*dt),rep(29.6,20*dt))
+#     data$WS =  c(rep(0.1,30*dt+1),rep(0.24,20*dt),rep(0.10,30*dt),rep(0.12,20*dt),rep(0.12,20*dt))
+#     data$RH = c(rep(47.5,30*dt+1),rep(55.6,20*dt),rep(47.6,30*dt),rep(53.5,20*dt),rep(47.8,20*dt))
     
 
     index = 0
     windex = 1
     while (time < 1.0){
+      
+#         if (index > 0 && index%%20 == 0){
+#             windex = windex+1     #stretch the kestrel data out
+#         }
+       
+      
         if (time >= 0.5) {
           act = rm * mets #no mets     
+          me = 0
         }
         else {
           act = rm * mets
           
         }
         index=index+1
-        
+        windex=index
         #dynamic weather
-        ta = data$TP[index]
-        tr = data$MRT[index]
-        v = data$WS[index]
-        rh = data$RH[index]/100
+        ta = data$TP[windex]
+        tr = data$MRT[windex]
+        v = data$WS[windex]
+        rh = data$RH[windex]/100
         pa = rh * svp(ta)
         #####
         # Radiative and convective
         ####
         
         #still air
-        ti = 1.0
+        ti = 0.5
         
         #seppanen model
-#         if (v < 0.15){
+#         if (v < 0.15 && time > 0.5){
 #           v=4/3.6
 #         }
 #         
 #         chc = 14.8*v^0.69
-#         
-#         chc = 4.0*v + 0.35*v * ti - 0.00080*(v*ti)**2 + 3.4 #Ooka
+      
+        
+        chc = 4.0*v + 0.35*v * ti - 0.00080*(v*ti)**2 + 3.4 #Ooka
 #         chc = 8.4*v^0.5
-#         chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
-        chc = 3.1  #takada
-        chr = 4.65 #takada
+        chr = 4*0.72*5.67*10^-8*((tcl+tr)/2+273.15)^3
+#         chc = 3.1  #takada
+#         chr = 4.65 #takada
 #         tcl = (chclo*tsk+facl*(chc*ta+chr*tr))/(chclo+facl*(chc+chr))
         
 #         while (abs(tcl-tclold) > 0.01){
@@ -262,8 +298,8 @@ sub <- function(data,phys){
         if (skbf > skbfl) {skbf = skbfl}
 
         # skin-core proportion changes with blood flow
-#         alpha = 0.0417737+ 0.7451832/(skbf+0.58517)
-        alpha = 0.044 + 0.35/ (skbf-0.1386)
+        alpha = 0.0417737+ 0.7451832/(skbf+0.58517)
+#         alpha = 0.044 + 0.35/ (skbf-0.1386)
 #         alpha = 0.1
        
 
@@ -366,37 +402,40 @@ sub <- function(data,phys){
         lines(vedif,col="blue")
         lines(versw,col="red")
         
-        cat(sweat/hours,'\n')#,"; bmr:",rm,"bfp:",bfp,"lbm:",lbm,"\n")
-        return(list(tsk=vtsk,tcr=vtcr))
+        cat(sweat,'\n')#,"; bmr:",rm,"bfp:",bfp,"lbm:",lbm,"\n")
+        return(sweat)
     }
 
 #subjects data
-hs1 = list(); hs1$ht = 1.77; hs1$wt = 70.65; hs1$mets1 = 5.56; hs1$mets2 = 5.48
-hs2 = list(); hs2$ht = 1.78; hs2$wt = 67.765; hs2$mets1 = 3.64; hs2$mets2 = 3.56
-hs3 = list(); hs3$ht = 1.74; hs3$wt = 70.395; hs3$mets1 = 4.8; hs3$mets2 = 4.84
-hs4 = list(); hs4$ht = 1.68; hs4$wt = 57.54; hs4$mets1 = 5.8; hs4$mets2 = 5.68
+hs1 = list(); hs1$ht = 1.77; hs1$wt = 70.65; hs1$mets1 = 5.56; hs1$mets2 = 5.48;hs1$ttcr1 = 36.73; hs1$ttcr2 = 36.52
+hs2 = list(); hs2$ht = 1.78; hs2$wt = 67.765; hs2$mets1 = 3.64; hs2$mets2 = 3.56; hs2$ttcr1 = 36.93; hs2$ttcr2 = 36.87
+hs3 = list(); hs3$ht = 1.74; hs3$wt = 70.395; hs3$mets1 = 4.8; hs3$mets2 = 4.84; hs3$ttcr1 = 37.6; hs3$ttcr2 = 36.68
+hs4 = list(); hs4$ht = 1.68; hs4$wt = 57.54; hs4$mets1 = 5.8; hs4$mets2 = 5.68; hs4$ttcr1 = 36.37; hs4$ttcr2 = 36.5
 
-ks1 = list(); ks1$ht = 1.8; ks1$wt = 86.515; ks1$mets1 = 3.76; ks1$mets2 = 3.88
-ks2 = list(); ks2$ht = 1.74; ks2$wt = 72.1; ks2$mets1 = 4; ks2$mets2 = 3.8
-ks3 = list(); ks3$ht = 1.69; ks3$wt = 53.755; ks3$mets1 = 4.84; ks3$mets2 = 4.64
-ks4 = list(); ks4$ht = 1.54; ks4$wt = 44.165; ks4$mets1 = 4.88; ks4$mets2 = 4.72
+ks1 = list(); ks1$ht = 1.8; ks1$wt = 86.515; ks1$mets1 = 3.76; ks1$mets2 = 3.88; ks1$ttcr1 = 36.93; ks1$ttcr2 = 36.93
+ks2 = list(); ks2$ht = 1.74; ks2$wt = 72.1; ks2$mets1 = 4; ks2$mets2 = 3.8;ks2$ttcr1 = 36.14; ks2$ttcr2 = 36.54
+ks3 = list(); ks3$ht = 1.69; ks3$wt = 53.755; ks3$mets1 = 4.84; ks3$mets2 = 4.64;ks3$ttcr1 = 36.49; ks3$ttcr2 = 36.49
+ks4 = list(); ks4$ht = 1.54; ks4$wt = 44.165; ks4$mets1 = 4.88; ks4$mets2 = 4.72;ks4$ttcr1 = 36.64; ks4$ttcr2 = 36.86
 
-ns1 = list(); ns1$ht = 1.69; ns1$wt = 52.705; ns1$mets1 = 5.12; ns1$mets2 = 5.4
-ns2 = list(); ns2$ht = 1.7; ns2$wt = 71.175; ns2$mets1 = 4.52; ns2$mets2 = 4.08
-ns3 = list(); ns3$ht = 1.8; ns3$wt = 71.51; ns3$mets1 = 4.36; ns3$mets2 = 4.28
-ns4 = list(); ns4$ht = 1.69; ns4$wt = 59.98; ns4$mets1 = 3.68; ns4$mets2 = 3.68
+ns1 = list(); ns1$ht = 1.69; ns1$wt = 52.705; ns1$mets1 = 5.12; ns1$mets2 = 5.4; ns1$ttcr1 = 36.5;ns1$ttcr2 = 36.5
+ns2 = list(); ns2$ht = 1.7; ns2$wt = 71.175; ns2$mets1 = 4.52; ns2$mets2 = 4.08; ns2$ttcr1 = 36.73;ns2$ttcr2 = 36.73
+ns3 = list(); ns3$ht = 1.8; ns3$wt = 71.51; ns3$mets1 = 4.36; ns3$mets2 = 4.28; ns3$ttcr1 = 36.5;ns3$ttcr2 = 36.67
+ns4 = list(); ns4$ht = 1.69; ns4$wt = 59.98; ns4$mets1 = 3.68; ns4$mets2 = 3.68;ns4$ttcr1 = 37.02;ns4$ttcr2 = 36.62
 
 
-wrap <- function(exp,candidate){
+wrap <- function(exp,candidate,pred){
 #   cat(exp,"1\n")
+  
   for (n in 1:4){
     phys = list()
     subject = get(paste(candidate,n,sep="")) #ks,hs or ns
     phys$ht = subject$ht
     phys$wt = subject$wt
     phys$mets = subject$mets1
+    phys$ttcr = subject$ttcr2
     data<-s2nk("K01",exp,1,30)
-    sub(data,phys)
+    sub(data,phys,exp,n,1) -> x
+    pred = c(pred,x)
   }
 #   cat("----------------\n")
 #   cat(exp,"2\n")
@@ -406,13 +445,19 @@ wrap <- function(exp,candidate){
     phys$ht = subject$ht
     phys$wt = subject$wt
     phys$mets = subject$mets2
+    phys$ttcr = subject$ttcr2
     data<-s2nk("K01",exp,2,30)
-    sub(data,phys)
+    sub(data,phys,exp,n,2) -> x
+    pred = c(pred,x)
   }
+  return(pred)
 #   cat("----------------\n")
 }
-
-wrap("H","hs")
-wrap("K","ks")
-wrap("N","ns")
+pred = c()
+wrap("H","hs",pred) -> pred
+wrap("K","ks",pred) -> pred
+wrap("N","ns",pred) -> pred
+# print(pred)
+print(summary(lm(pred~sweat$Weight.loss)))
+print(rmse(pred,sweat$Weight.loss))
 
