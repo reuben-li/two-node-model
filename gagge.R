@@ -56,7 +56,7 @@ s2n<-function(N,exp,phase,interval){
                K_1 = as.POSIXlt("2014-09-04 14:35:00"),
                K_2 = as.POSIXlt("2014-09-04 16:33:00"),           
                N_1 = as.POSIXlt("2014-09-16 14:38:40"),
-               N_2 = as.POSIXlt("2014-09-16 16:26:00"),
+               N_2 = as.POSIXlt("2014-09-16 16:25:00"),
                
   )
   return(
@@ -68,21 +68,40 @@ s2n<-function(N,exp,phase,interval){
 
 sub <- function(data,phys,exp,n,phase){
 
+  skin = s2n(paste("N0",n+4,sep=""),exp,phase,30)$mean
+  core = s2n(paste("N0",n,sep=""),exp,phase,30)$Ch.1
+  
+#  cat(exp,phase+1,n+1, '\n')
+  
+  if (exp=="H" && phase==2 && n == 4){
+    skin = s2n(paste("N0",n+4,sep=""),exp,phase,30)$mean_spec
+  }
+  if (exp=="H" && phase==2 && n == 3){
+    skin = s2n(paste("N0",n+4,sep=""),exp,phase,30)$mean_spec
+  }
+  if (exp=="N" && phase==2 && n == 2){
+    skin = s2n(paste("N0",n+4,sep=""),exp,phase,30)$mean_spec    
+  }
+  if (exp=="N" && phase==1 && n == 3){
+    skin = s2n(paste("N0",n+4,sep=""),exp,phase,30)$mean_spec
+  } 
+  
     # Initial temperatures
     tcl = tclold = 0     # To prevent while loop from bugging out
 
     # init value
-    tcr=s2n(paste("N0",n,sep=""),exp,phase,30)$Ch.1[1]
+    tcr= core[1]
 #   tcr = phys$ttcr # use base oral temp as start temp # higher figure   
     ttcr = tcr
-    tsk=s2n(paste("N0",n+4,sep=""),exp,phase,30)$mean[1]
-    ttsk = tsk
+    tsk = skin[1]
+
+#     ttsk = tsk
 
 #     default
 #     tsk = 33.7
-#     ttsk = 33.7
+    ttsk = 33.7
 #     tcr = 36.5
-#     ttcr=36.5
+#     ttcr=36.9
 #     
     ata = 1 # atmospheres?
   
@@ -330,8 +349,8 @@ sub <- function(data,phys,exp,n,phase){
 
 #         cat('warms',warms,'\n')
         #sweating regulation
-        regsw = csw*warmb*exp(warms/10.7)
-#         regsw = regsw=250.0*warmc+100.0*warmc*warms 
+#         regsw = csw*warmb*exp(warms/10.7)
+        regsw = regsw=250.0*warmc+100.0*warmc*warms 
         if (regsw > regswl) {
           regsw = regswl
         }
@@ -414,19 +433,19 @@ sub <- function(data,phys,exp,n,phase){
         }
     
     #components
-        par(xaxs='i',yaxs='i',xpd=F,cex=1)
-        old.par <- par(mfrow=c(3,2),mar=c(2,2,2,2))
-        plot(vhfsk,type="l",main=paste("hfsk and hfcr (red)",exp,phase,"S",n),ylim=c(-100,100))
-        lines(vhfcr,col="red")
-        plot(vtsk,type="l",main="tsk", ylim=c(29,38))#ylim=c(30,36), main= "tsk and tcl (red)")
-        lines(vtcr,col="red")
-        lines(vtcl,col="blue")
-        plot(vtcr,type="l",ylim=c(35,38))
-        plot(vr,type="l", main="R")
-        plot(vc,type="l", main="C")
-        plot(ve,type="l", main = "E",ylim=c(0,120))
-        lines(vedif,col="blue")
-        lines(versw,col="red")
+#         par(xaxs='i',yaxs='i',xpd=F,cex=1)
+#         old.par <- par(mfrow=c(3,2),mar=c(2,2,2,2))
+#         plot(vhfsk,type="l",main=paste("hfsk and hfcr (red)",exp,phase,"S",n),ylim=c(-100,100))
+#         lines(vhfcr,col="red")
+#         plot(vtsk,type="l",main="tsk", ylim=c(29,38))#ylim=c(30,36), main= "tsk and tcl (red)")
+#         lines(vtcr,col="red")
+#         lines(vtcl,col="blue")
+#         plot(vtcr,type="l",ylim=c(35,38))
+#         plot(vr,type="l", main="R")
+#         plot(vc,type="l", main="C")
+#         plot(ve,type="l", main = "E",ylim=c(0,120))
+#         lines(vedif,col="blue")
+#         lines(versw,col="red")
         
       #plot summary of tsk and tcr
      
