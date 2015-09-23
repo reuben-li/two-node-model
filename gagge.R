@@ -18,7 +18,7 @@ getstart<-function(N,exp,phase,interval){
                H_2 = as.POSIXlt("2014-09-02 16:31:00"),        
                K_1 = as.POSIXlt("2014-09-04 14:35:00"),
                K_2 = as.POSIXlt("2014-09-04 16:33:00"),           
-               N_1 = as.POSIXlt("2014-09-16 14:42:20"),
+               N_1 = as.POSIXlt("2014-09-16 14:42:20"), #38:40
                N_2 = as.POSIXlt("2014-09-16 16:26:00"),
                
   )
@@ -31,11 +31,11 @@ s2nk<-function(N,exp,phase,interval){
   case=paste(exp,phase,sep="_")
   shift=0
   start=switch(case,
-               H_1 = as.POSIXlt("2014-09-02 14:34:40"),
-               H_2 = as.POSIXlt("2014-09-02 16:31:00"),        
+               H_1 = as.POSIXlt("2014-09-02 14:37:40"), #34:40
+               H_2 = as.POSIXlt("2014-09-02 16:31:00"),   #31:00     
                K_1 = as.POSIXlt("2014-09-04 14:35:00"),
                K_2 = as.POSIXlt("2014-09-04 16:33:00"),           
-               N_1 = as.POSIXlt("2014-09-16 14:42:20"), #42:20
+               N_1 = as.POSIXlt("2014-09-16 14:42:40"), #38:40
                N_2 = as.POSIXlt("2014-09-16 16:26:00"),
                
   )
@@ -51,12 +51,12 @@ s2n<-function(N,exp,phase,interval){
   case=paste(exp,phase,sep="_")
   shift=0
   start=switch(case,
-               H_1 = as.POSIXlt("2014-09-02 14:35:00"),
+               H_1 = as.POSIXlt("2014-09-02 14:34:40"),
                H_2 = as.POSIXlt("2014-09-02 16:31:00"),        
                K_1 = as.POSIXlt("2014-09-04 14:35:00"),
                K_2 = as.POSIXlt("2014-09-04 16:33:00"),           
                N_1 = as.POSIXlt("2014-09-16 14:38:40"),
-               N_2 = as.POSIXlt("2014-09-16 16:25:00"),
+               N_2 = as.POSIXlt("2014-09-16 16:26:00"),
                
   )
   return(
@@ -70,19 +70,20 @@ sub <- function(data,phys,exp,n,phase){
 
     # Initial temperatures
     tcl = tclold = 0     # To prevent while loop from bugging out
-    tcr = 36.9
-#     tcr=s2n(paste("N0",n,sep=""),exp,phase,30)$Ch.1[1]
-#     ttcr = 36.5    # setpoint tcr
-    ttcr = phys$ttcr # use base oral temp as start temp # higher figure   
-#     ttcr = tcr
-    
-    
-#     tsk = 34
-#     ttsk = 33.7  
+
+    # init value
+    tcr=s2n(paste("N0",n,sep=""),exp,phase,30)$Ch.1[1]
+#   tcr = phys$ttcr # use base oral temp as start temp # higher figure   
+    ttcr = tcr
     tsk=s2n(paste("N0",n+4,sep=""),exp,phase,30)$mean[1]
     ttsk = tsk
 
-    
+#     default
+#     tsk = 33.7
+#     ttsk = 33.7
+#     tcr = 36.5
+#     ttcr=36.5
+#     
     ata = 1 # atmospheres?
   
     # Clothing related
@@ -99,8 +100,8 @@ sub <- function(data,phys,exp,n,phase){
     # Sweat
     regswl = 500
     csw = 170 # g/m2/hr
-    cdil = 75 #litres/(m2/h/K)  #200 in 1986 75 in 1971
-    cstr = 0.1                #0.1 in 1986  0.5 in 1971
+    cdil = 200 #litres/(m2/h/K)  #200 in 1986 75 in 1971
+    cstr = 0.5                #0.1 in 1986  0.5 in 1971
     sweat = 0
 
     
@@ -111,7 +112,7 @@ sub <- function(data,phys,exp,n,phase){
     alpha = 0.044 + 0.35/ (skbf-0.1386)
     
     # Metabolism and activity
-    mets = 4.5
+    mets = 4
     rm = ((0.064*wt + 2.896)*11.57)/adu # BMR is for person. equations here use sqm^-1 
 #     rm = (63*wt+2896)*0.01157/adu     # kJ to watt schofield
 #     rm = (15.057*wt+692.2)*0.04843/adu  # kcal to watt schofield
@@ -131,7 +132,7 @@ sub <- function(data,phys,exp,n,phase){
 #     rm = (13.397*wt + 4.799*ht*100 - 5.677*25 + 88.362) * 0.0484/adu
 #     print(rm)
     
-    me = 0.09 # 0 when at rest
+    me = 0.2 # 0 when at rest
 #    http://deepblue.lib.umich.edu/handle/2027.42/24523
     esk = 7.3 #init
     bz = 0.1
@@ -322,9 +323,9 @@ sub <- function(data,phys,exp,n,phase){
         if (skbf > skbfl) {skbf = skbfl}
 
         # skin-core proportion changes with blood flow
-#         alpha = 0.0417737+ 0.7451832/(skbf+0.58517)
+        alpha = 0.0417737+ 0.7451832/(skbf+0.58517)
 #         alpha = 0.044 + 0.35/ (skbf-0.1386)
-        alpha = 0.1
+#         alpha = 0.1
        
 
 #         cat('warms',warms,'\n')
@@ -392,7 +393,6 @@ sub <- function(data,phys,exp,n,phase){
         if (edrip < 0) {edrip = 0}
         
         sweat = sweat + ((cres+esk+edrip)*adu/0.68)*(interval/3600) #g/timestep
-        
         #vapour pressure at skin
         vpsk = pwet * svp(tsk)+(1-pwet)*pa
         # rh at skin
@@ -414,19 +414,19 @@ sub <- function(data,phys,exp,n,phase){
         }
     
     #components
-#         par(xaxs='i',yaxs='i',xpd=F,cex=1)
-#         old.par <- par(mfrow=c(3,2),mar=c(2,2,2,2))
-#         plot(vhfsk,type="l",main=paste("hfsk and hfcr (red)",exp,phase,"S",n),ylim=c(-100,100))
-#         lines(vhfcr,col="red")
-#         plot(vtsk,type="l",main="tsk", ylim=c(29,38))#ylim=c(30,36), main= "tsk and tcl (red)")
-#         lines(vtcr,col="red")
-#         lines(vtcl,col="blue")
-#         plot(vtcr,type="l")#,ylim=c(36.5,37.5))
-#         plot(vr,type="l", main="R")
-#         plot(vc,type="l", main="C")
-#         plot(ve,type="l", main = "E",ylim=c(0,120))
-#         lines(vedif,col="blue")
-#         lines(versw,col="red")
+        par(xaxs='i',yaxs='i',xpd=F,cex=1)
+        old.par <- par(mfrow=c(3,2),mar=c(2,2,2,2))
+        plot(vhfsk,type="l",main=paste("hfsk and hfcr (red)",exp,phase,"S",n),ylim=c(-100,100))
+        lines(vhfcr,col="red")
+        plot(vtsk,type="l",main="tsk", ylim=c(29,38))#ylim=c(30,36), main= "tsk and tcl (red)")
+        lines(vtcr,col="red")
+        lines(vtcl,col="blue")
+        plot(vtcr,type="l",ylim=c(35,38))
+        plot(vr,type="l", main="R")
+        plot(vc,type="l", main="C")
+        plot(ve,type="l", main = "E",ylim=c(0,120))
+        lines(vedif,col="blue")
+        lines(versw,col="red")
         
       #plot summary of tsk and tcr
      
@@ -458,6 +458,9 @@ sub <- function(data,phys,exp,n,phase){
 #       plot(ve,type="l", main = "E",ylim=c(0,120))
 #       lines(vedif,col="blue")
 #       lines(versw,col="red")
+    if (exp == "H"){sweat = sweat*1.25}
+    else if (exp == "N") {sweat = sweat*2}
+    else {sweat = sweat*2}
     
     
         cat(sweat,'\n')#,"; bmr:",rm,"bfp:",bfp,"lbm:",lbm,"\n")
@@ -490,7 +493,7 @@ wrap <- function(exp,candidate,pred){
     phys$ht = subject$ht
     phys$wt = subject$wt
     phys$mets = subject$mets1
-    phys$ttcr = subject$ttcr2
+    phys$ttcr = subject$ttcr1
     data<-s2nk("K01",exp,1,30)
     sub(data,phys,exp,n,1) -> x
     pred = c(pred,x)
@@ -520,7 +523,9 @@ wrap("N","ns",pred) -> pred
 
 print(pred)
 print(summary(lm(pred~sweat$Weight.loss)))
+print(cor(pred,sweat$Weight.loss,method="spearman"))
 print(rmse(pred,sweat$Weight.loss))
+
 pdata <- data.frame(sweat$Weight.loss,pred)
 # ggplot(pdata,aes(pred,sweat.Weight.loss))+geom_line()
 ggplot(pdata,aes(pred/2,sweat.Weight.loss/2))+geom_point()+theme_bw()+geom_smooth(method=lm,fill=NA,color="black")+ylab("Observed SR (g/hr)") + xlab("Predicted SR (g/hr)")
